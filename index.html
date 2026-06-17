@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LexDesk — Gestão Jurídica</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/iconfont/tabler-icons.min.css">
+
+  <!-- ===== FIREBASE SDK ===== -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f7f6f3;
+      --bg-tertiary: #eeece6;
+      --text-primary: #1a1916;
+      --text-secondary: #706e69;
+      --border-light: #e6e3db;
+      --border-mid: #d1cec5;
+      --accent: #185FA5;
+      --accent-dark: #0C447C;
+      --accent-hover: #e6f1fb;
+      --ai-color: #3C3489;
+      --ai-hover: #26215C;
+      --danger: #E24B4A;
+      --amber: #EF9F27;
+      --green: #639922;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.12);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      line-height: 1.5;
+    }
+
+    input, select, textarea, button {
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    input[type=text], input[type=date], input[type=time], input[type=number],
+    input[type=email], select, textarea {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: var(--bg-primary);
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 72px; }
+
+    /* ===== LAYOUT ===== */
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 210px;
+      min-width: 210px;
+      background: var(--bg-primary);
+      border-right: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 18px 16px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -.3px;
+      border-bottom: 1px solid var(--border-light);
+      user-select: none;
+    }
+    .sidebar-logo i { font-size: 20px; }
+
+    .nav-section {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 14px 16px 5px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: 0;
+      transition: all .12s;
+      border-left: 2px solid transparent;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+    .nav-item.active {
+      background: var(--accent-hover);
+      color: var(--accent);
+      font-weight: 600;
+      border-left-color: var(--accent);
+    }
+    .nav-item i { font-size: 16px; flex-shrink: 0; }
+    .nav-spacer { flex: 1; }
+    .nav-divider { border: none; border-top: 1px solid var(--border-light); margin: 8px 0; }
+
+    /* ===== MAIN ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 22px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-light);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .topbar-title { font-size: 15px; font-weight: 600; }
+    .topbar-actions { display: flex; gap: 7px; align-items: center; flex-shrink: 0; }
+
+    .content { flex: 1; overflow-y: auto; padding: 20px 22px; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 13px;
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: all .12s;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--bg-secondary); border-color: var(--border-mid); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-ai { background: var(--ai-color); color: #fff; border-color: var(--ai-color); }
+    .btn-ai:hover { background: var(--ai-hover); }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover { background: #fcebeb; }
+    .btn-sm { padding: 5px 9px; font-size: 11px; }
+    .btn-xs { padding: 3px 7px; font-size: 10px; }
+    .btn i { font-size: 14px; }
+    .btn-sm i { font-size: 12px; }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    /* ===== BADGES ===== */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-blue  { background: #e6f1fb; color: #0c447c; }
+    .badge-red   { background: #fcebeb; color: #791f1f; }
+    .badge-amber { background: #faeeda; color: #633806; }
+    .badge-green { background: #eaf3de; color: #27500a; }
+    .badge-gray  { background: #f1efe8; color: #444441; }
+    .badge-purple{ background: #eeedfe; color: #3c3489; }
+
+    /* ===== METRICS ===== */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .metric {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .metric-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .metric-value { font-size: 24px; font-weight: 700; }
+    .metric-sub { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ===== SECTIONS ===== */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ===== TWO COL ===== */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* ===== PROCESS LIST ===== */
+    .process-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .process-item:last-child { border-bottom: none; }
+    .process-item:hover { background: var(--bg-secondary); }
+    .process-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .dot-red   { background: var(--danger); }
+    .dot-blue  { background: var(--accent); }
+    .dot-gray  { background: #b0ada6; }
+    .dot-green { background: var(--green); }
+    .process-info { flex: 1; min-width: 0; }
+    .process-num  { font-size: 10px; color: var(--text-secondary); font-family: monospace; margin-bottom: 1px; }
+    .process-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .process-meta { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+    /* ===== PROGRESS ===== */
+    .progress-bar { height: 3px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+
+    /* ===== TABS ===== */
+    .tabs { display: flex; border-bottom: 1px solid var(--border-light); margin-bottom: 14px; }
+    .tab { padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .12s; }
+    .tab:hover { color: var(--text-primary); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ===== CHECKLIST ===== */
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .checklist-item input[type=checkbox] { margin-top: 3px; width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+    .checklist-text { flex: 1; font-size: 12px; line-height: 1.4; }
+    .checklist-text.done { text-decoration: line-through; color: var(--text-secondary); }
+    .item-del-btn { background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 0 2px; opacity: .6; transition: opacity .12s; }
+    .item-del-btn:hover { opacity: 1; color: var(--danger); }
+
+    /* ===== APPOINTMENTS ===== */
+    .appt-item {
+      display: flex;
+      gap: 11px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-light);
+      align-items: flex-start;
+    }
+    .appt-item:last-child { border-bottom: none; }
+    .appt-time { font-size: 10px; color: var(--text-secondary); min-width: 70px; font-family: monospace; padding-top: 2px; line-height: 1.6; }
+    .appt-body { flex: 1; min-width: 0; }
+    .appt-title { font-size: 12px; font-weight: 600; }
+    .appt-detail { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+
+    /* ===== ALERT ===== */
+    .alert-banner {
+      display: none;
+      align-items: center;
+      gap: 9px;
+      background: #faeeda;
+      border: 1px solid var(--amber);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #633806;
+    }
+    .alert-banner.show { display: flex; }
+
+    /* ===== CALENDAR ===== */
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-day-name { text-align: center; font-size: 10px; font-weight: 600; color: var(--text-secondary); padding: 4px 2px; text-transform: uppercase; }
+    .cal-day {
+      min-height: 66px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .cal-day:hover { background: var(--bg-tertiary); }
+    .cal-day.today { border: 1.5px solid var(--accent); background: var(--accent-hover); }
+    .cal-day.other-month { opacity: .3; pointer-events: none; }
+    .cal-day-num { font-size: 10px; font-weight: 600; margin-bottom: 2px; }
+    .cal-event {
+      font-size: 9px;
+      background: var(--accent-hover);
+      color: var(--accent);
+      border-radius: 2px;
+      padding: 1px 3px;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cal-event.evt-red    { background: #fcebeb; color: #791f1f; }
+    .cal-event.evt-green  { background: #eaf3de; color: #27500a; }
+    .cal-event.evt-amber  { background: #faeeda; color: #633806; }
+    .cal-event.evt-purple { background: #eeedfe; color: #3c3489; }
+    .cal-nav { display: flex; align-items: center; gap: 10px; }
+    .cal-nav-btn {
+      background: none;
+      border: 1px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+      transition: background .12s;
+    }
+    .cal-nav-btn:hover { background: var(--bg-secondary); }
+
+    /* ===== STAGE ===== */
+    .stage {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      margin-bottom: 5px;
+      background: var(--bg-secondary);
+    }
+    .stage-name { font-size: 12px; flex: 1; }
+
+    /* ===== CUSTOM FIELDS ===== */
+    .custom-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .custom-field:last-child { border-bottom: none; }
+    .custom-field-label { font-size: 11px; color: var(--text-secondary); min-width: 120px; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-secondary);
+    }
+    .empty-state i { font-size: 30px; display: block; margin-bottom: 8px; opacity: .5; }
+    .empty-state p { font-size: 12px; margin-bottom: 14px; }
+
+    /* ===== AI PANEL ===== */
+    .ai-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+    }
+    .ai-messages { max-height: 280px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .ai-msg {
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 88%;
+    }
+    .ai-msg.user { background: var(--accent-hover); color: var(--accent-dark); align-self: flex-end; border: 1px solid #c5ddf5; }
+    .ai-msg.assistant { background: var(--bg-primary); color: var(--text-primary); align-self: flex-start; border: 1px solid var(--border-light); }
+    .ai-msg.thinking { opacity: .65; font-style: italic; }
+    .ai-input-row { display: flex; gap: 7px; }
+    .ai-input-row input { flex: 1; }
+    .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .ai-chip {
+      padding: 5px 10px;
+      border: 1px solid var(--border-mid);
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      transition: all .12s;
+    }
+    .ai-chip:hover { background: #eeedfe; color: var(--ai-color); border-color: #afa9ec; }
+
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-mid);
+      width: 520px;
+      max-width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+    .modal-lg { width: 600px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-size: 14px; font-weight: 600; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 2px; }
+    .modal-close:hover { color: var(--text-primary); }
+
+    /* ===== FORMS ===== */
+    .form-group { margin-bottom: 11px; }
+    .form-label { display: block; font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .form-section { border-top: 1px solid var(--border-light); padding-top: 12px; margin-top: 12px; }
+    .form-section-title { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .form-actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+    .inline-add { display: flex; gap: 6px; margin-top: 6px; }
+    .inline-add input { flex: 1; }
+
+    /* ===== CONFIG ===== */
+    .config-section { margin-bottom: 20px; }
+
+    /* ===== PRINT PDF ===== */
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { background: #fff; color: #000; font-size: 11px; }
+      .app, .sidebar, .topbar, .tabs, .modal-overlay, .btn, .nav-item,
+      .ai-panel, .ai-chips, .no-print { display: none !important; }
+      .print-doc { display: block !important; }
+    }
+    .print-doc { display: none; }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+    /* ===== TOOLTIP ===== */
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1916;
+      color: #fff;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 999;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 820px) {
+      .sidebar { width: 52px; min-width: 52px; }
+      .sidebar-logo span, .nav-section, .nav-item span { display: none; }
+      .nav-item { justify-content: center; padding: 10px; }
+      .nav-item i { font-size: 18px; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-row-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ===== LOGIN SCREEN ===== */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0C447C 0%, #185FA5 50%, #3C3489 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    #login-screen.hidden { display: none; }
+    .login-box {
+      background: var(--bg-primary);
+      border-radius: 14px;
+      padding: 36px 32px;
+      width: 380px;
+      max-width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .login-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .login-sub {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 26px;
+    }
+    .login-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid var(--border-light); }
+    .login-tab {
+      flex: 1; text-align: center; padding: 9px 0; font-size: 13px; font-weight: 500;
+      color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: all .12s;
+    }
+    .login-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .login-error {
+      display: none;
+      background: #fcebeb; color: #791f1f; border: 1px solid #f3c6c6;
+      border-radius: var(--radius-md); padding: 9px 12px; font-size: 12px; margin-bottom: 14px;
+    }
+    .login-error.show { display: block; }
+    .login-success {
+      display: none;
+      background: #eaf3de; color: #27500a; border: 1px solid #cfe6b3;
+      border-radius: var(--radius-md); padding: 9px 12px; font-size: 12px; margin-bottom: 14px;
+    }
+    .login-success.show { display: block; }
+    .login-btn-full { width: 100%; justify-content: center; padding: 10px; font-size: 13px; }
+    .login-loading { display: none; align-items: center; justify-content: center; gap: 7px; }
+    .login-loading.show { display: flex; }
+    #user-badge {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; color: var(--text-secondary);
+      padding: 5px 9px; border-radius: 20px; background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+    }
+    #sync-indicator {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; color: var(--text-secondary);
+    }
+    #sync-indicator.syncing { color: var(--accent); }
+    #sync-indicator i { font-size: 12px; }
+    @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+    .spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-scale"></i> LexDesk</div>
+    <div class="login-sub">Gestão jurídica inteligente</div>
+
+    <div class="login-tabs">
+      <div class="login-tab active" id="tab-signin" onclick="switchLoginTab('signin')">Entrar</div>
+      <div class="login-tab" id="tab-signup" onclick="switchLoginTab('signup')">Criar conta</div>
+    </div>
+
+    <div class="login-error" id="login-error"></div>
+    <div class="login-success" id="login-success"></div>
+
+    <!-- FORM: SIGN IN -->
+    <div id="form-signin">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" id="signin-email" placeholder="seu@email.com" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doSignIn()">
+      </div>
+      <button class="btn btn-primary login-btn-full" id="btn-signin" onclick="doSignIn()">
+        <span id="signin-label"><i class="ti ti-login"></i> Entrar</span>
+        <span class="login-loading" id="signin-loading"><i class="ti ti-loader spin"></i> Entrando...</span>
+      </button>
+      <div style="text-align:center; margin-top:14px">
+        <a href="#" style="font-size:11px; color:var(--text-secondary)" onclick="doResetPassword(); return false;">Esqueci minha senha</a>
+      </div>
+    </div>
+
+    <!-- FORM: SIGN UP -->
+    <div id="form-signup" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Nome</label>
+        <input type="text" id="signup-name" placeholder="Seu nome completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" id="signup-email" placeholder="seu@email.com" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha (mínimo 6 caracteres)</label>
+        <input type="password" id="signup-password" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter') doSignUp()">
+      </div>
+      <button class="btn btn-primary login-btn-full" id="btn-signup" onclick="doSignUp()">
+        <span id="signup-label"><i class="ti ti-user-plus"></i> Criar conta</span>
+        <span class="login-loading" id="signup-loading"><i class="ti ti-loader spin"></i> Criando...</span>
+      </button>
+    </div>
+
+    <div style="text-align:center; margin-top:20px; font-size:10px; color:var(--text-secondary)">
+      Seus dados ficam protegidos e acessíveis apenas com seu login.
+    </div>
+  </div>
+</div>
+
+<!-- ===== PRINT DOCUMENT ===== -->
+<div class="print-doc" id="print-doc"></div>
+
+<!-- ===== APP ===== -->
+<div class="app" id="app-root" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <i class="ti ti-scale"></i>
+      <span>LexDesk</span>
+    </div>
+
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showSection('dashboard', this)" data-tip="Painel">
+      <i class="ti ti-layout-dashboard"></i><span>Painel</span>
+    </div>
+    <div class="nav-item" onclick="showSection('processos', this)" data-tip="Processos">
+      <i class="ti ti-briefcase"></i><span>Processos</span>
+    </div>
+    <div class="nav-item" onclick="showSection('agenda', this)" data-tip="Agenda">
+      <i class="ti ti-calendar"></i><span>Agenda</span>
+    </div>
+
+    <div class="nav-section">Gestão</div>
+    <div class="nav-item" onclick="showSection('checklists', this)" data-tip="Checklists">
+      <i class="ti ti-checklist"></i><span>Checklists</span>
+    </div>
+    <div class="nav-item" onclick="showSection('contratos', this)" data-tip="Contratos">
+      <i class="ti ti-file-text"></i><span>Contratos</span>
+    </div>
+    <div class="nav-item" onclick="showSection('estudos', this)" data-tip="Estudos">
+      <i class="ti ti-book"></i><span>Estudos</span>
+    </div>
+
+    <div class="nav-section">Ferramentas</div>
+    <div class="nav-item" onclick="showSection('ia', this)" data-tip="IA Jurídica">
+      <i class="ti ti-robot"></i><span>IA Jurídica</span>
+    </div>
+    <div class="nav-item" onclick="showSection('campos', this)" data-tip="Campos">
+      <i class="ti ti-adjustments"></i><span>Campos</span>
+    </div>
+
+    <div class="nav-spacer"></div>
+    <hr class="nav-divider">
+    <div class="nav-item" onclick="showSection('config', this)" data-tip="Configurações">
+      <i class="ti ti-settings"></i><span>Config.</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <span class="topbar-title" id="top-title">Painel Geral</span>
+      <div class="topbar-actions">
+        <span id="sync-indicator"><i class="ti ti-cloud-check"></i> <span id="sync-text">Sincronizado</span></span>
+        <span id="user-badge"><i class="ti ti-user-circle"></i> <span id="user-email-label"></span></span>
+        <button class="btn btn-sm" onclick="openExportModal()">
+          <i class="ti ti-file-export"></i> Exportar PDF
+        </button>
+        <button class="btn btn-ai btn-sm" onclick="showSection('ia', document.querySelectorAll('.nav-item')[6]); setTimeout(()=>runIA('Analise todos os prazos críticos e processos urgentes e oriente sobre prioridades desta semana'), 100)">
+          <i class="ti ti-robot"></i> Analisar IA
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+          <i class="ti ti-plus"></i> Adicionar
+        </button>
+        <button class="btn btn-sm" data-tip="Sair" onclick="doSignOut()">
+          <i class="ti ti-logout"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- ========== DASHBOARD ========== -->
+      <div class="section active" id="sec-dashboard">
+        <div class="alert-banner" id="alert-banner">
+          <i class="ti ti-alert-triangle"></i>
+          <span id="alert-text"></span>
+          <button class="btn btn-sm" style="margin-left:auto; background:#EF9F27; color:#fff; border-color:#EF9F27"
+            onclick="showSection('ia',document.querySelectorAll('.nav-item')[6]); setTimeout(()=>runIA('Há prazos vencendo hoje. Analise os processos e agenda e oriente sobre ações imediatas'), 100)">
+            <i class="ti ti-robot"></i> Analisar
+          </button>
+        </div>
+
+        <div class="grid-3">
+          <div class="metric">
+            <div class="metric-label">Processos ativos</div>
+            <div class="metric-value" id="m-processos">0</div>
+            <div class="metric-sub">em andamento</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Prazos (7 dias)</div>
+            <div class="metric-value" id="m-prazos">0</div>
+            <div class="metric-sub">compromissos</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Tarefas pendentes</div>
+            <div class="metric-value" id="m-tarefas">0</div>
+            <div class="metric-sub">nos checklists</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Próximos prazos</span>
+              <button class="btn btn-xs" onclick="showSection('agenda', document.querySelectorAll('.nav-item')[2])">
+                <i class="ti ti-arrow-right"></i>
+              </button>
+            </div>
+            <div id="dash-prazos"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Processos urgentes</span>
+              <button class="btn btn-xs" onclick="showSection('processos', document.querySelectorAll('.nav-item')[1])">
+                <i class="ti ti-arrow-right"></i>
+              </button>
+            </div>
+            <div id="dash-urgentes"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Compromissos de hoje</span></div>
+          <div id="dash-hoje"></div>
+        </div>
+      </div>
+
+      <!-- ========== PROCESSOS ========== -->
+      <div class="section" id="sec-processos">
+        <div class="tabs">
+          <div class="tab active" onclick="filterP('todos', this)">Todos</div>
+          <div class="tab" onclick="filterP('urgente', this)">Urgente</div>
+          <div class="tab" onclick="filterP('normal', this)">Ativos</div>
+          <div class="tab" onclick="filterP('arquivado', this)">Arquivados</div>
+        </div>
+        <div id="lista-processos"></div>
+      </div>
+
+      <!-- ========== AGENDA ========== -->
+      <div class="section" id="sec-agenda">
+        <div class="card">
+          <div class="card-header">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+              <span id="cal-label" style="font-size:13px; font-weight:600; min-width:140px; text-align:center"></span>
+              <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div style="display:flex; gap:7px">
+              <button class="btn btn-sm" onclick="goToday()">Hoje</button>
+              <button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> Novo</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-names" style="margin-bottom:3px"></div>
+          <div class="cal-grid" id="cal-days"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title" id="agenda-day-label">Compromissos</span>
+          </div>
+          <div id="agenda-list">
+            <div class="empty-state">
+              <i class="ti ti-calendar-event"></i>
+              <p>Clique em um dia no calendário para ver os compromissos</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== CHECKLISTS ========== -->
+      <div class="section" id="sec-checklists">
+        <div class="tabs">
+          <div class="tab active" onclick="filterCL('todos', this)">Todos</div>
+          <div class="tab" onclick="filterCL('legislacao', this)">Legislação</div>
+          <div class="tab" onclick="filterCL('contrato', this)">Contratos</div>
+          <div class="tab" onclick="filterCL('processo', this)">Processos</div>
+          <div class="tab" onclick="filterCL('outros', this)">Outros</div>
+        </div>
+        <div id="lista-checklists"></div>
+      </div>
+
+      <!-- ========== CONTRATOS ========== -->
+      <div class="section" id="sec-contratos">
+        <div id="lista-contratos"></div>
+      </div>
+
+      <!-- ========== ESTUDOS ========== -->
+      <div class="section" id="sec-estudos">
+        <div id="lista-estudos"></div>
+      </div>
+
+      <!-- ========== IA ========== -->
+      <div class="section" id="sec-ia">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div style="font-size:14px; font-weight:600; margin-bottom:3px">
+                <i class="ti ti-robot" style="color:var(--ai-color)"></i> Assistente Jurídico IA
+              </div>
+              <div style="font-size:11px; color:var(--text-secondary)">
+                Análise de prazos, estratégias processuais e orientações com base nos seus dados
+              </div>
+            </div>
+            <button class="btn btn-sm" onclick="clearAI()"><i class="ti ti-trash"></i> Limpar</button>
+          </div>
+
+          <div class="ai-chips">
+            <div class="ai-chip" onclick="runIA('Analise todos os prazos dos processos e da agenda. Destaque os mais críticos e oriente sobre prioridades de ação imediata.')">
+              <i class="ti ti-alarm"></i> Prazos críticos
+            </div>
+            <div class="ai-chip" onclick="runIA('Revise minha agenda da próxima semana e sugira a melhor organização e distribuição das atividades para maior produtividade.')">
+              <i class="ti ti-calendar-check"></i> Organizar agenda
+            </div>
+            <div class="ai-chip" onclick="runIA('Analise todos os processos urgentes e sugira estratégias de ação imediata, priorizando os mais críticos.')">
+              <i class="ti ti-alert-triangle"></i> Processos urgentes
+            </div>
+            <div class="ai-chip" onclick="runIA('Verifique os contratos próximos do vencimento e oriente sobre cada um: renovar, renegociar ou encerrar.')">
+              <i class="ti ti-file-search"></i> Contratos a vencer
+            </div>
+            <div class="ai-chip" onclick="runIA('Gere um resumo executivo completo de todas as minhas atividades, processos, pendências e próximos passos prioritários.')">
+              <i class="ti ti-report"></i> Resumo executivo
+            </div>
+            <div class="ai-chip" onclick="runIA('Analise os checklists pendentes e indique quais legislações e tarefas precisam de atenção urgente.')">
+              <i class="ti ti-checklist"></i> Pendências
+            </div>
+            <div class="ai-chip" onclick="runIA('Quais são as etapas processuais pendentes em cada processo? Sugira os próximos passos para cada um.')">
+              <i class="ti ti-list-check"></i> Etapas pendentes
+            </div>
+            <div class="ai-chip" onclick="runIA('Analise minha distribuição de estudos jurídicos e sugira como otimizar o tempo de estudo considerando meus prazos processuais.')">
+              <i class="ti ti-book"></i> Plano de estudos
+            </div>
+          </div>
+
+          <div class="ai-panel">
+            <div class="ai-messages" id="ai-msgs">
+              <div class="ai-msg assistant">
+                Olá! Sou seu assistente jurídico com IA. Tenho acesso aos dados do seu escritório — processos, prazos, agenda, contratos e estudos — e posso oferecer análises estratégicas e orientações práticas. Como posso ajudar?
+              </div>
+            </div>
+            <div class="ai-input-row">
+              <input type="text" id="ai-input"
+                placeholder="Pergunte sobre seus processos, prazos, contratos ou estratégias..."
+                onkeydown="if(event.key==='Enter') sendAI()">
+              <button class="btn btn-ai" onclick="sendAI()">
+                <i class="ti ti-send"></i> Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== CAMPOS ========== -->
+      <div class="section" id="sec-campos">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title">Campos personalizados</span>
+              <div style="font-size:11px; color:var(--text-secondary); margin-top:3px">
+                Campos extras que aparecem em processos, contratos ou agenda
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCampoModal()">
+              <i class="ti ti-plus"></i> Novo campo
+            </button>
+          </div>
+          <div id="lista-campos">
+            <div class="empty-state">
+              <i class="ti ti-adjustments"></i>
+              <p>Nenhum campo criado ainda</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title">Modelos de etapas</span>
+              <div style="font-size:11px; color:var(--text-secondary); margin-top:3px">
+                Sequências pré-definidas de etapas processuais reutilizáveis
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModeloModal()">
+              <i class="ti ti-plus"></i> Novo modelo
+            </button>
+          </div>
+          <div id="lista-modelos"></div>
+        </div>
+      </div>
+
+      <!-- ========== CONFIG ========== -->
+      <div class="section" id="sec-config">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Dados do escritório</span></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nome do advogado</label>
+              <input type="text" id="conf-nome" placeholder="Dr. João Silva"></div>
+            <div class="form-group"><label class="form-label">OAB</label>
+              <input type="text" id="conf-oab" placeholder="OAB/SE 000000"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Escritório</label>
+              <input type="text" id="conf-escritorio" placeholder="Silva Advogados"></div>
+            <div class="form-group"><label class="form-label">E-mail</label>
+              <input type="email" id="conf-email" placeholder="contato@escritorio.com"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Telefone</label>
+            <input type="text" id="conf-tel" placeholder="(79) 99999-9999" style="max-width:220px"></div>
+          <div class="form-actions" style="border-top:none; padding-top:0; margin-top:4px">
+            <button class="btn btn-primary" onclick="saveConfig()"><i class="ti ti-check"></i> Salvar configurações</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Backup de dados</span></div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px">
+            Todos os dados são salvos localmente no seu navegador. Faça backups regulares.
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn" onclick="exportJSON()"><i class="ti ti-download"></i> Exportar backup (.json)</button>
+            <button class="btn" onclick="importJSON()"><i class="ti ti-upload"></i> Importar backup</button>
+            <button class="btn btn-danger" onclick="clearAll()"><i class="ti ti-trash"></i> Limpar todos os dados</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Sobre o LexDesk</span></div>
+          <div style="font-size:12px; color:var(--text-secondary); line-height:1.8">
+            <strong>Versão:</strong> 2.0<br>
+            <strong>Armazenamento:</strong> Local (navegador) — nenhum dado é enviado para servidores externos<br>
+            <strong>IA:</strong> Powered by Claude (Anthropic) via API<br>
+            <strong>Exportação PDF:</strong> Via impressão do navegador (Ctrl+P / Cmd+P)
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /app -->
+
+<!-- ===== MODAL PRINCIPAL ===== -->
+<div class="modal-overlay" id="modal-main" onclick="if(event.target===this) closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Adicionar</span>
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL DETALHE PROCESSO ===== -->
+<div class="modal-overlay" id="modal-det" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal modal-lg" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="det-title"></span>
+      <button class="modal-close" onclick="document.getElementById('modal-det').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="det-body"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL EXPORTAR PDF ===== -->
+<div class="modal-overlay" id="modal-export" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title"><i class="ti ti-file-export"></i> Exportar Relatório PDF</span>
+      <button class="modal-close" onclick="document.getElementById('modal-export').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Título do relatório</label>
+      <input type="text" id="exp-titulo" placeholder="Relatório de Gestão — LexDesk">
+    </div>
+
+    <div style="font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px">
+      Incluir no relatório:
+    </div>
+    <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:16px">
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-processos" checked> Processos judiciais
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-agenda" checked> Agenda e compromissos
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-checklists" checked> Checklists
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-contratos" checked> Contratos
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-estudos"> Estudos jurídicos
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer">
+        <input type="checkbox" id="exp-campos"> Campos personalizados
+      </label>
+    </div>
+
+    <div style="display:flex; gap:8px">
+      <button class="btn btn-primary" onclick="gerarPDF()">
+        <i class="ti ti-printer"></i> Gerar e imprimir PDF
+      </button>
+      <button class="btn" onclick="document.getElementById('modal-export').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+'use strict';
+
+/* =====================================================
+   FIREBASE CONFIG
+   >>> SUBSTITUA pelos valores do SEU projeto Firebase <<<
+   (Configurações do projeto > Geral > Seus apps > SDK)
+===================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyA-1KkUuiMaRgNi9RiCgKy56qmfWp7siaE",
+  authDomain: "lexdesk-meu-escritorio.firebaseapp.com",
+  projectId: "lexdesk-meu-escritorio",
+  storageBucket: "lexdesk-meu-escritorio.firebasestorage.app",
+  messagingSenderId: "52479447109",
+  appId: "1:52479447109:web:5abb5c3aeb17663ace532c"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let saveTimeout = null;
+let firstLoadDone = false;
+
+/* =====================================================
+   STATE
+===================================================== */
+let CS = 'dashboard'; // current section
+let calYear, calMonth, selDate;
+let pFilter = 'todos', clFilter = 'todos';
+let aiHistory = [];
+let formEtapas = [];
+
+let D = {
+  processos: [], agenda: [], checklists: [],
+  contratos: [], estudos: [], campos: [], modelos: [],
+  config: {}
+};
+
+/* =====================================================
+   AUTH STATE LISTENER
+===================================================== */
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app-root').style.display = 'flex';
+    document.getElementById('user-email-label').textContent = user.email;
+    loadDataFromFirestore();
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-root').style.display = 'none';
+  }
+});
+
+/* =====================================================
+   LOGIN SCREEN LOGIC
+===================================================== */
+function switchLoginTab(tab) {
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('form-signin').style.display = tab === 'signin' ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+  hideLoginMsgs();
+}
+function hideLoginMsgs() {
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('login-success').classList.remove('show');
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('login-success').classList.remove('show');
+}
+function showLoginSuccess(msg) {
+  const el = document.getElementById('login-success');
+  el.textContent = msg; el.classList.add('show');
+  document.getElementById('login-error').classList.remove('show');
+}
+
+function translateFirebaseError(code) {
+  const map = {
+    'auth/invalid-email': 'E-mail inválido.',
+    'auth/user-disabled': 'Esta conta foi desativada.',
+    'auth/user-not-found': 'E-mail ou senha incorretos.',
+    'auth/wrong-password': 'E-mail ou senha incorretos.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos.',
+    'auth/email-already-in-use': 'Este e-mail já está cadastrado. Tente entrar.',
+    'auth/weak-password': 'A senha deve ter no mínimo 6 caracteres.',
+    'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde um momento e tente novamente.'
+  };
+  return map[code] || 'Ocorreu um erro. Tente novamente.';
+}
+
+function doSignIn() {
+  const email = document.getElementById('signin-email').value.trim();
+  const pass = document.getElementById('signin-password').value;
+  if (!email || !pass) { showLoginError('Preencha e-mail e senha.'); return; }
+  hideLoginMsgs();
+  document.getElementById('signin-label').style.display = 'none';
+  document.getElementById('signin-loading').classList.add('show');
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(err => {
+      showLoginError(translateFirebaseError(err.code));
+    })
+    .finally(() => {
+      document.getElementById('signin-label').style.display = 'inline-flex';
+      document.getElementById('signin-loading').classList.remove('show');
+    });
+}
+
+function doSignUp() {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-password').value;
+  if (!name || !email || !pass) { showLoginError('Preencha todos os campos.'); return; }
+  if (pass.length < 6) { showLoginError('A senha deve ter no mínimo 6 caracteres.'); return; }
+  hideLoginMsgs();
+  document.getElementById('signup-label').style.display = 'none';
+  document.getElementById('signup-loading').classList.add('show');
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(cred => {
+      return cred.user.updateProfile({ displayName: name }).then(() => {
+        D.config.nome = name;
+        D.config.email = email;
+      });
+    })
+    .catch(err => {
+      showLoginError(translateFirebaseError(err.code));
+    })
+    .finally(() => {
+      document.getElementById('signup-label').style.display = 'inline-flex';
+      document.getElementById('signup-loading').classList.remove('show');
+    });
+}
+
+function doResetPassword() {
+  const email = document.getElementById('signin-email').value.trim();
+  if (!email) { showLoginError('Digite seu e-mail no campo acima primeiro.'); return; }
+  hideLoginMsgs();
+  auth.sendPasswordResetEmail(email)
+    .then(() => showLoginSuccess('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.'))
+    .catch(err => showLoginError(translateFirebaseError(err.code)));
+}
+
+function doSignOut() {
+  if (!confirm('Deseja realmente sair?')) return;
+  auth.signOut();
+}
+
+/* =====================================================
+   FIRESTORE DATA SYNC
+   Cada usuário tem seu próprio documento em /users/{uid}
+===================================================== */
+function loadDataFromFirestore() {
+  setSyncStatus('loading');
+  db.collection('users').doc(currentUser.uid).get()
+    .then(doc => {
+      if (doc.exists && doc.data().lexdesk) {
+        D = doc.data().lexdesk;
+        // garante que todas as chaves existem (compatibilidade com versões futuras)
+        D.processos = D.processos || [];
+        D.agenda = D.agenda || [];
+        D.checklists = D.checklists || [];
+        D.contratos = D.contratos || [];
+        D.estudos = D.estudos || [];
+        D.campos = D.campos || [];
+        D.modelos = D.modelos || [];
+        D.config = D.config || {};
+      } else {
+        seedDemo();
+        saveDataNow();
+      }
+      firstLoadDone = true;
+      initCal();
+      renderDashboard();
+      loadConfig();
+      setSyncStatus('synced');
+    })
+    .catch(err => {
+      console.error('Erro ao carregar dados:', err);
+      setSyncStatus('error');
+      seedDemo();
+      initCal();
+      renderDashboard();
+      loadConfig();
+    });
+}
+
+function saveData() {
+  if (!firstLoadDone || !currentUser) return;
+  setSyncStatus('syncing');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveDataNow, 600); // debounce
+}
+
+function saveDataNow() {
+  if (!currentUser) return;
+  db.collection('users').doc(currentUser.uid).set({
+    lexdesk: D,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+    .then(() => setSyncStatus('synced'))
+    .catch(err => {
+      console.error('Erro ao salvar:', err);
+      setSyncStatus('error');
+    });
+}
+
+function setSyncStatus(status) {
+  const ind = document.getElementById('sync-indicator');
+  const txt = document.getElementById('sync-text');
+  if (!ind) return;
+  if (status === 'syncing' || status === 'loading') {
+    ind.classList.add('syncing');
+    ind.querySelector('i').className = 'ti ti-loader spin';
+    txt.textContent = status === 'loading' ? 'Carregando...' : 'Salvando...';
+  } else if (status === 'synced') {
+    ind.classList.remove('syncing');
+    ind.querySelector('i').className = 'ti ti-cloud-check';
+    txt.textContent = 'Sincronizado';
+  } else if (status === 'error') {
+    ind.classList.remove('syncing');
+    ind.querySelector('i').className = 'ti ti-cloud-off';
+    txt.textContent = 'Erro ao sincronizar';
+  }
+}
+
+function loadConfig() {
+  const c = D.config;
+  if (c.nome) document.getElementById('conf-nome').value = c.nome;
+  if (c.oab) document.getElementById('conf-oab').value = c.oab;
+  if (c.escritorio) document.getElementById('conf-escritorio').value = c.escritorio;
+  if (c.email) document.getElementById('conf-email').value = c.email;
+  if (c.tel) document.getElementById('conf-tel').value = c.tel;
+}
+
+function gid() { return Math.random().toString(36).substr(2, 9); }
+function fmt(ds) { return ds ? ds.split('-').reverse().join('/') : '—'; }
+
+function addDays(n) {
+  const d = new Date(); d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+
+/* =====================================================
+   DEMO DATA
+===================================================== */
+function seedDemo() {
+  D.processos = [
+    { id: gid(), num: '0001234-12.2024.8.26.0100', nome: 'Rescisão contratual — Comércio Sul Ltda.', cliente: 'Comércio Sul Ltda.', area: 'Cível', status: 'urgente', prazo: addDays(2), fase: 'Contestação', notas: 'Prazo de contestação vencendo em 2 dias. Reunir documentação urgente.', etapas: [{nome:'Petição inicial',ok:true},{nome:'Contestação',ok:false},{nome:'Audiência',ok:false},{nome:'Sentença',ok:false}], camposExtra: {} },
+    { id: gid(), num: '0009876-54.2024.8.26.0200', nome: 'Ação trabalhista — Eduardo Martins', cliente: 'Eduardo Martins', area: 'Trabalhista', status: 'normal', prazo: addDays(10), fase: 'Instrução', notas: 'Audiência de instrução agendada. Arrolamento de testemunhas pendente.', etapas: [{nome:'Petição inicial',ok:true},{nome:'Contestação',ok:true},{nome:'Instrução',ok:false},{nome:'Sentença',ok:false}], camposExtra: {} },
+    { id: gid(), num: '0004567-89.2023.8.26.0300', nome: 'Inventário — Espólio Ferreira', cliente: 'Família Ferreira', area: 'Família', status: 'normal', prazo: addDays(20), fase: 'Habilitação', notas: 'Aguardando documentação dos herdeiros colaterais.', etapas: [{nome:'Abertura',ok:true},{nome:'Habilitação',ok:false},{nome:'Avaliação',ok:false},{nome:'Partilha',ok:false}], camposExtra: {} },
+    { id: gid(), num: '0007654-32.2022.8.26.0400', nome: 'Usucapião urbana — Roberto Santos', cliente: 'Roberto Santos', area: 'Imobiliário', status: 'arquivado', prazo: '', fase: 'Arquivado', notas: 'Processo encerrado com êxito.', etapas: [{nome:'Petição',ok:true},{nome:'Perícia',ok:true},{nome:'Sentença',ok:true}], camposExtra: {} }
+  ];
+  D.agenda = [
+    { id: gid(), titulo: 'Audiência — Comércio Sul', tipo: 'audiencia', data: addDays(2), hora: '14:00', local: '3ª Vara Cível — TJSP', processo: '0001234-12.2024.8.26.0100', notas: '' },
+    { id: gid(), titulo: 'Prazo — Contestação Comércio Sul', tipo: 'prazo', data: addDays(2), hora: '23:59', local: '', processo: '0001234-12.2024.8.26.0100', notas: 'URGENTE — improrrogável' },
+    { id: gid(), titulo: 'Reunião de cliente — Eduardo Martins', tipo: 'reuniao', data: addDays(5), hora: '10:30', local: 'Escritório', processo: '', notas: 'Apresentar estratégia de defesa trabalhista' },
+    { id: gid(), titulo: 'Despacho — Inventário Ferreira', tipo: 'despacho', data: addDays(12), hora: '09:00', local: 'Online', processo: '', notas: '' },
+    { id: gid(), titulo: 'Reunião de equipe', tipo: 'reuniao', data: new Date().toISOString().split('T')[0], hora: '08:00', local: 'Escritório', processo: '', notas: 'Distribuição de pautas da semana' }
+  ];
+  D.checklists = [
+    { id: gid(), titulo: 'Análise — Contrato de Prestação de Serviços', tipo: 'contrato', itens: [
+      {id:gid(),texto:'Identificação e qualificação completa das partes',ok:true},
+      {id:gid(),texto:'Objeto do contrato definido com clareza',ok:true},
+      {id:gid(),texto:'Prazo de vigência e condições de renovação',ok:false},
+      {id:gid(),texto:'Cláusula de remuneração e forma de pagamento',ok:true},
+      {id:gid(),texto:'Penalidades e multas por descumprimento',ok:false},
+      {id:gid(),texto:'Cláusula de confidencialidade',ok:false},
+      {id:gid(),texto:'Foro de eleição e lei aplicável',ok:true}
+    ]},
+    { id: gid(), titulo: 'Lei nº 14.133/2021 — Nova Lei de Licitações', tipo: 'legislacao', itens: [
+      {id:gid(),texto:'Modalidades de licitação e critérios de escolha',ok:true},
+      {id:gid(),texto:'Critérios de julgamento das propostas',ok:false},
+      {id:gid(),texto:'Regras de habilitação dos licitantes',ok:false},
+      {id:gid(),texto:'Recursos administrativos e prazos recursais',ok:false},
+      {id:gid(),texto:'Sanções, penalidades e impedimentos',ok:false}
+    ]},
+    { id: gid(), titulo: 'Documentos — Ação Trabalhista Eduardo Martins', tipo: 'processo', itens: [
+      {id:gid(),texto:'Carteira de trabalho digitalizada',ok:true},
+      {id:gid(),texto:'Contracheques dos últimos 12 meses',ok:true},
+      {id:gid(),texto:'Comprovante de término do contrato',ok:true},
+      {id:gid(),texto:'Testemunhas arroladas',ok:false},
+      {id:gid(),texto:'Quesitos para perícia contábil elaborados',ok:false}
+    ]}
+  ];
+  D.contratos = [
+    { id: gid(), nome: 'Prestação de Serviços — Comércio Sul Ltda.', parte: 'Comércio Sul Ltda.', tipo: 'Prestação de Serviços', status: 'revisar', vencimento: addDays(30), valor: 'R$ 18.000,00', notas: 'Pendente revisão das cláusulas 7 e 12' },
+    { id: gid(), nome: 'Locação comercial — Edifício Centro', parte: 'Imobiliária Pinheiros', tipo: 'Locação', status: 'ok', vencimento: addDays(180), valor: 'R$ 220.000,00', notas: '' }
+  ];
+  D.estudos = [
+    { id: gid(), titulo: 'Marco Legal das Garantias (Lei 14.711/2023)', area: 'Empresarial', status: 'em_andamento', progresso: 40, notas: 'Focar em alienação fiduciária e penhor', prazo: addDays(15) },
+    { id: gid(), titulo: 'Reforma Trabalhista — Jurisprudência TST 2024', area: 'Trabalhista', status: 'pendente', progresso: 0, notas: 'Levantar acórdãos sobre teletrabalho e jornada híbrida', prazo: addDays(30) }
+  ];
+  D.campos = [
+    { id: gid(), nome: 'Valor da causa', tipo: 'texto', entidade: 'processo', obrigatorio: false, opcoes: '' },
+    { id: gid(), nome: 'Vara / Câmara', tipo: 'texto', entidade: 'processo', obrigatorio: false, opcoes: '' },
+    { id: gid(), nome: 'Tribunal', tipo: 'selecao', entidade: 'processo', obrigatorio: false, opcoes: 'TJSP,TJSE,TJRJ,TJMG,TST,STJ,STF' }
+  ];
+  D.modelos = [
+    { id: gid(), nome: 'Ação Cível Comum', etapas: ['Petição inicial','Citação','Contestação','Réplica','Audiência de instrução','Alegações finais','Sentença','Recurso de apelação'] },
+    { id: gid(), nome: 'Ação Trabalhista', etapas: ['Reclamação trabalhista','Notificação','Audiência inaugural','Instrução processual','Perícia técnica','Alegações finais','Sentença','Recurso ordinário'] },
+    { id: gid(), nome: 'Inventário', etapas: ['Abertura do inventário','Habilitação dos herdeiros','Avaliação dos bens','ITCMD — imposto','Partilha','Formal de partilha','Registro'] }
+  ];
+}
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+function showSection(s, el) {
+  document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.getElementById('sec-' + s).classList.add('active');
+  if (el) el.classList.add('active');
+  CS = s;
+  const T = {
+    dashboard: 'Painel Geral', processos: 'Processos Judiciais',
+    agenda: 'Agenda & Calendário', checklists: 'Checklists',
+    contratos: 'Contratos', estudos: 'Estudos Jurídicos',
+    ia: 'Assistente Jurídico IA', campos: 'Campos Personalizáveis',
+    config: 'Configurações'
+  };
+  document.getElementById('top-title').textContent = T[s] || s;
+  const renders = {
+    dashboard: renderDashboard, processos: renderProcessos,
+    agenda: () => renderCalendar(), checklists: renderChecklists,
+    contratos: renderContratos, estudos: renderEstudos, campos: renderCampos
+  };
+  if (renders[s]) renders[s]();
+}
+
+/* =====================================================
+   HELPERS
+===================================================== */
+function tipoColor(t) {
+  return { audiencia:'badge-blue', prazo:'badge-red', reuniao:'badge-green', despacho:'badge-purple', outro:'badge-gray' }[t] || 'badge-gray';
+}
+function tipoLabel(t) {
+  return { audiencia:'Audiência', prazo:'Prazo', reuniao:'Reunião', despacho:'Despacho', outro:'Outro' }[t] || t;
+}
+function statusColor(s) {
+  return { urgente:'badge-red', normal:'badge-blue', arquivado:'badge-gray', ok:'badge-green', revisar:'badge-amber', em_andamento:'badge-blue', pendente:'badge-gray', concluido:'badge-green' }[s] || 'badge-gray';
+}
+function statusLabel(s) {
+  return { urgente:'Urgente', normal:'Ativo', arquivado:'Arquivado', ok:'Regular', revisar:'Revisar', em_andamento:'Em andamento', pendente:'Pendente', concluido:'Concluído' }[s] || s;
+}
+function clColor(t) {
+  return { legislacao:'badge-purple', contrato:'badge-blue', processo:'badge-amber', outros:'badge-gray' }[t] || 'badge-gray';
+}
+function clLabel(t) {
+  return { legislacao:'Legislação', contrato:'Contrato', processo:'Processo', outros:'Outro' }[t] || t;
+}
+
+/* =====================================================
+   DASHBOARD
+===================================================== */
+function renderDashboard() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const em7 = addDays(7);
+  const ativos = D.processos.filter(p => p.status !== 'arquivado').length;
+  const prazos7 = D.agenda.filter(a => a.data >= hoje && a.data <= em7).length;
+  const pendentes = D.checklists.reduce((acc, c) => acc + c.itens.filter(i => !i.ok).length, 0);
+
+  document.getElementById('m-processos').textContent = ativos;
+  document.getElementById('m-prazos').textContent = prazos7;
+  document.getElementById('m-tarefas').textContent = pendentes;
+
+  // próximos prazos
+  const prox = [...D.agenda].filter(a => a.data >= hoje).sort((a,b) => a.data > b.data ? 1 : -1).slice(0, 5);
+  const dpEl = document.getElementById('dash-prazos');
+  dpEl.innerHTML = prox.length
+    ? prox.map(a => `<div class="appt-item">
+        <div class="appt-time">${fmt(a.data)}<br>${a.hora}</div>
+        <div class="appt-body">
+          <div class="appt-title">${a.titulo}</div>
+          <div class="appt-detail">${a.local || tipoLabel(a.tipo)}</div>
+        </div>
+        <span class="badge ${tipoColor(a.tipo)}">${tipoLabel(a.tipo)}</span>
+      </div>`).join('')
+    : '<div class="empty-state"><i class="ti ti-calendar-off"></i><p>Sem prazos próximos</p></div>';
+
+  // urgentes
+  const urg = D.processos.filter(p => p.status === 'urgente');
+  const duEl = document.getElementById('dash-urgentes');
+  duEl.innerHTML = urg.length
+    ? urg.map(p => `<div class="process-item" onclick="openDet('${p.id}')">
+        <div class="process-dot dot-red"></div>
+        <div class="process-info">
+          <div class="process-num">${p.num}</div>
+          <div class="process-name">${p.nome}</div>
+          <div class="process-meta">${p.area} · ${p.fase}</div>
+        </div>
+        <div style="font-size:10px; color:#791f1f; flex-shrink:0">${fmt(p.prazo)}</div>
+      </div>`).join('')
+    : '<div class="empty-state"><i class="ti ti-mood-smile"></i><p>Nenhum urgente</p></div>';
+
+  // hoje
+  const th = D.agenda.filter(a => a.data === hoje).sort((a,b) => a.hora > b.hora ? 1 : -1);
+  const dtEl = document.getElementById('dash-hoje');
+  dtEl.innerHTML = th.length
+    ? th.map(a => `<div class="appt-item">
+        <div class="appt-time">${a.hora}</div>
+        <div class="appt-body">
+          <div class="appt-title">${a.titulo}</div>
+          <div class="appt-detail">${a.local || tipoLabel(a.tipo)}</div>
+        </div>
+        <span class="badge ${tipoColor(a.tipo)}">${tipoLabel(a.tipo)}</span>
+      </div>`).join('')
+    : '<div class="empty-state"><i class="ti ti-sun"></i><p>Nenhum compromisso hoje</p></div>';
+
+  // alerta
+  const banner = document.getElementById('alert-banner');
+  const urgH = D.processos.filter(p => p.prazo === hoje);
+  const prazoH = D.agenda.filter(a => a.data === hoje && a.tipo === 'prazo');
+  if (urgH.length || prazoH.length) {
+    document.getElementById('alert-text').textContent =
+      `Atenção: ${urgH.length + prazoH.length} prazo(s) vencendo hoje!`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+/* =====================================================
+   PROCESSOS
+===================================================== */
+function filterP(f, el) {
+  pFilter = f;
+  document.querySelectorAll('#sec-processos .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderProcessos();
+}
+
+function renderProcessos() {
+  let list = D.processos;
+  if (pFilter === 'urgente')   list = list.filter(p => p.status === 'urgente');
+  else if (pFilter === 'normal')   list = list.filter(p => p.status === 'normal');
+  else if (pFilter === 'arquivado') list = list.filter(p => p.status === 'arquivado');
+  else list = list.filter(p => p.status !== 'arquivado');
+
+  const el = document.getElementById('lista-processos');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-briefcase"></i><p>Nenhum processo encontrado</p><button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i> Adicionar processo</button></div>`;
+    return;
+  }
+  el.innerHTML = '<div class="card" style="padding:0">' + list.map(p => {
+    const pr = p.etapas && p.etapas.length ? Math.round(p.etapas.filter(e => e.ok).length / p.etapas.length * 100) : 0;
+    return `<div class="process-item" onclick="openDet('${p.id}')">
+      <div class="process-dot ${p.status==='urgente'?'dot-red':p.status==='arquivado'?'dot-gray':'dot-blue'}"></div>
+      <div class="process-info">
+        <div class="process-num">${p.num}</div>
+        <div class="process-name">${p.nome}</div>
+        <div class="process-meta">${p.area} · ${p.fase} · <strong>${p.cliente}</strong></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pr}%"></div></div>
+      </div>
+      <div style="text-align:right; flex-shrink:0; margin-left:10px">
+        <span class="badge ${statusColor(p.status)}">${statusLabel(p.status)}</span>
+        <div style="font-size:10px; color:var(--text-secondary); margin-top:4px">${fmt(p.prazo)}</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function openDet(id) {
+  const p = D.processos.find(x => x.id === id);
+  if (!p) return;
+  const campos = D.campos.filter(c => c.entidade === 'processo');
+  document.getElementById('det-title').textContent = p.num || 'Processo';
+  document.getElementById('det-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px; font-weight:700; margin-bottom:6px">${p.nome}</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px">
+        <span class="badge ${statusColor(p.status)}">${statusLabel(p.status)}</span>
+        <span class="badge badge-gray">${p.area}</span>
+        <span class="badge badge-gray">${p.fase}</span>
+      </div>
+      <div style="font-size:11px; color:var(--text-secondary)">
+        Cliente: <strong style="color:var(--text-primary)">${p.cliente}</strong>
+      </div>
+      ${p.prazo ? `<div style="font-size:11px; color:#791f1f; margin-top:3px">Prazo: <strong>${fmt(p.prazo)}</strong></div>` : ''}
+    </div>
+
+    ${p.etapas && p.etapas.length ? `
+    <div style="margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:8px">Etapas processuais</div>
+      ${p.etapas.map((e, i) => `
+        <div class="stage">
+          <input type="checkbox" ${e.ok ? 'checked' : ''} onchange="togEtapa('${p.id}',${i},this.checked)" style="cursor:pointer; accent-color:var(--accent)">
+          <span class="stage-name" style="${e.ok ? 'text-decoration:line-through;color:var(--text-secondary)' : ''}">${e.nome}</span>
+          <span class="badge ${e.ok ? 'badge-green' : 'badge-gray'}">${e.ok ? 'Concluída' : 'Pendente'}</span>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${campos.length ? `
+    <div style="margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:8px">Campos adicionais</div>
+      ${campos.map(c => `
+        <div class="custom-field">
+          <span class="custom-field-label">${c.nome}</span>
+          ${c.tipo === 'selecao'
+            ? `<select style="flex:1; border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:4px 7px; background:var(--bg-primary)" onchange="saveCE('${p.id}','${c.id}',this.value)">
+                <option value=""></option>
+                ${c.opcoes.split(',').map(o => `<option value="${o.trim()}" ${(p.camposExtra&&p.camposExtra[c.id])===o.trim()?'selected':''}>${o.trim()}</option>`).join('')}
+              </select>`
+            : `<input type="${c.tipo==='data'?'date':c.tipo==='numero'?'number':'text'}"
+                value="${(p.camposExtra && p.camposExtra[c.id]) || ''}"
+                placeholder="—"
+                style="flex:1; border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:4px 7px; background:var(--bg-primary)"
+                onchange="saveCE('${p.id}','${c.id}',this.value)">`}
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${p.notas ? `
+    <div style="margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:6px">Notas</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.6; background:var(--bg-secondary); padding:10px; border-radius:var(--radius-md)">${p.notas}</div>
+    </div>` : ''}
+
+    <div style="display:flex; gap:7px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border-light)">
+      <button class="btn btn-sm" onclick="togUrgente('${p.id}')">
+        <i class="ti ti-flag"></i> ${p.status === 'urgente' ? 'Remover urgência' : 'Marcar urgente'}
+      </button>
+      <button class="btn btn-ai btn-sm" onclick="analisarProcessoIA('${p.id}')">
+        <i class="ti ti-robot"></i> Analisar com IA
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="delProcesso('${p.id}')">
+        <i class="ti ti-trash"></i> Remover
+      </button>
+    </div>`;
+  document.getElementById('modal-det').classList.add('open');
+}
+
+function togEtapa(pid, idx, ok) {
+  const p = D.processos.find(x => x.id === pid);
+  if (p && p.etapas) { p.etapas[idx].ok = ok; saveData(); openDet(pid); renderProcessos(); }
+}
+function togUrgente(id) {
+  const p = D.processos.find(x => x.id === id);
+  if (p) { p.status = p.status === 'urgente' ? 'normal' : 'urgente'; saveData(); openDet(id); renderProcessos(); renderDashboard(); }
+}
+function delProcesso(id) {
+  if (!confirm('Remover processo permanentemente?')) return;
+  D.processos = D.processos.filter(x => x.id !== id);
+  saveData();
+  document.getElementById('modal-det').classList.remove('open');
+  renderProcessos(); renderDashboard();
+}
+function saveCE(pid, cid, val) {
+  const p = D.processos.find(x => x.id === pid);
+  if (p) { if (!p.camposExtra) p.camposExtra = {}; p.camposExtra[cid] = val; saveData(); }
+}
+function analisarProcessoIA(id) {
+  const p = D.processos.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-det').classList.remove('open');
+  showSection('ia', document.querySelectorAll('.nav-item')[6]);
+  setTimeout(() => runIA(`Analise detalhadamente o processo "${p.nome}" (nº ${p.num}), área ${p.area}, fase atual: ${p.fase}, prazo: ${fmt(p.prazo)}, cliente: ${p.cliente}. Sugira os próximos passos estratégicos prioritários e eventuais riscos processuais.`), 200);
+}
+
+/* =====================================================
+   CALENDÁRIO
+===================================================== */
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function initCal() {
+  const n = new Date();
+  calYear = n.getFullYear(); calMonth = n.getMonth();
+  selDate = n.toISOString().split('T')[0];
+}
+function changeMonth(d) {
+  calMonth += d;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+function goToday() {
+  const n = new Date();
+  calYear = n.getFullYear(); calMonth = n.getMonth();
+  selDate = n.toISOString().split('T')[0];
+  renderCalendar(); renderAgendaDay(selDate);
+}
+
+function renderCalendar() {
+  document.getElementById('cal-label').textContent = MONTHS[calMonth] + ' ' + calYear;
+  document.getElementById('cal-names').innerHTML = DAYS_PT.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const total = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date().toISOString().split('T')[0];
+  let html = '';
+
+  for (let i = 0; i < 42; i++) {
+    let ds, num, cls = '';
+    if (i < first) {
+      const d = new Date(calYear, calMonth - 1, new Date(calYear, calMonth, 0).getDate() - first + i + 1);
+      ds = d.toISOString().split('T')[0]; num = d.getDate(); cls = 'other-month';
+    } else if (i - first < total) {
+      const d = new Date(calYear, calMonth, i - first + 1);
+      ds = d.toISOString().split('T')[0]; num = i - first + 1;
+      if (ds === today) cls = 'today';
+    } else {
+      const d = new Date(calYear, calMonth + 1, i - first - total + 1);
+      ds = d.toISOString().split('T')[0]; num = i - first - total + 1; cls = 'other-month';
+    }
+    const evts = D.agenda.filter(a => a.data === ds);
+    const evtH = evts.slice(0, 2).map(e => {
+      const ec = { audiencia:'', prazo:'evt-red', reuniao:'evt-green', despacho:'evt-purple' }[e.tipo] || '';
+      return `<div class="cal-event ${ec}">${e.titulo.substring(0, 14)}</div>`;
+    }).join('');
+    html += `<div class="cal-day ${cls}" onclick="selectDay('${ds}')">
+      <div class="cal-day-num">${num}</div>${evtH}
+    </div>`;
+  }
+  document.getElementById('cal-days').innerHTML = html;
+}
+
+function selectDay(ds) {
+  selDate = ds; renderAgendaDay(ds);
+}
+function renderAgendaDay(ds) {
+  document.getElementById('agenda-day-label').textContent = 'Compromissos — ' + fmt(ds);
+  const evts = D.agenda.filter(a => a.data === ds).sort((a,b) => a.hora > b.hora ? 1 : -1);
+  const el = document.getElementById('agenda-list');
+  el.innerHTML = evts.length
+    ? evts.map(e => `<div class="appt-item">
+        <div class="appt-time">${e.hora}</div>
+        <div class="appt-body">
+          <div class="appt-title">${e.titulo}</div>
+          <div class="appt-detail">${[e.local, e.processo].filter(Boolean).join(' · ')}</div>
+          ${e.notas ? `<div class="appt-detail" style="font-style:italic; margin-top:1px">${e.notas}</div>` : ''}
+        </div>
+        <div style="display:flex; gap:5px; align-items:center; flex-shrink:0">
+          <span class="badge ${tipoColor(e.tipo)}">${tipoLabel(e.tipo)}</span>
+          <button class="btn btn-danger btn-xs" onclick="delAgenda('${e.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty-state"><i class="ti ti-calendar-event"></i><p>Nenhum compromisso nesta data</p><button class="btn btn-primary btn-sm" onclick="openAddModal()"><i class="ti ti-plus"></i> Adicionar</button></div>';
+}
+function delAgenda(id) {
+  if (!confirm('Remover compromisso?')) return;
+  D.agenda = D.agenda.filter(x => x.id !== id);
+  saveData(); renderAgendaDay(selDate); renderCalendar(); renderDashboard();
+}
+
+/* =====================================================
+   CHECKLISTS
+===================================================== */
+function filterCL(f, el) {
+  clFilter = f;
+  document.querySelectorAll('#sec-checklists .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active'); renderChecklists();
+}
+function renderChecklists() {
+  let list = clFilter === 'todos' ? D.checklists : D.checklists.filter(c => c.tipo === clFilter);
+  const el = document.getElementById('lista-checklists');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-checklist"></i><p>Nenhum checklist</p><button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i> Criar checklist</button></div>`;
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const done = c.itens.filter(i => i.ok).length;
+    const pct = c.itens.length ? Math.round(done / c.itens.length * 100) : 0;
+    return `<div class="card">
+      <div class="card-header">
+        <div>
+          <div style="font-size:13px; font-weight:600">${c.titulo}</div>
+          <div style="font-size:10px; color:var(--text-secondary); margin-top:2px">${done}/${c.itens.length} itens · ${pct}% concluído</div>
+        </div>
+        <div style="display:flex; gap:5px">
+          <span class="badge ${clColor(c.tipo)}">${clLabel(c.tipo)}</span>
+          <button class="btn btn-danger btn-xs" onclick="delCL('${c.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="progress-bar" style="margin-bottom:10px"><div class="progress-fill" style="width:${pct}%"></div></div>
+      ${c.itens.map(i => `<div class="checklist-item">
+        <input type="checkbox" ${i.ok ? 'checked' : ''} onchange="toggleCI('${c.id}','${i.id}',this.checked)">
+        <div class="checklist-text ${i.ok ? 'done' : ''}">${i.texto}</div>
+        <button class="item-del-btn" onclick="delCI('${c.id}','${i.id}')"><i class="ti ti-x" style="font-size:11px"></i></button>
+      </div>`).join('')}
+      <div class="inline-add" style="margin-top:8px">
+        <input type="text" id="ni-${c.id}" placeholder="Novo item...">
+        <button class="btn btn-sm" onclick="addCI('${c.id}')"><i class="ti ti-plus"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleCI(cid, iid, ok) {
+  const c = D.checklists.find(x => x.id === cid);
+  if (c) { const i = c.itens.find(x => x.id === iid); if (i) i.ok = ok; saveData(); }
+  renderChecklists(); renderDashboard();
+}
+function delCI(cid, iid) {
+  const c = D.checklists.find(x => x.id === cid);
+  if (c) { c.itens = c.itens.filter(x => x.id !== iid); saveData(); renderChecklists(); }
+}
+function addCI(cid) {
+  const inp = document.getElementById('ni-' + cid);
+  if (!inp || !inp.value.trim()) return;
+  const c = D.checklists.find(x => x.id === cid);
+  if (c) { c.itens.push({ id: gid(), texto: inp.value.trim(), ok: false }); inp.value = ''; saveData(); renderChecklists(); }
+}
+function delCL(id) {
+  if (!confirm('Remover checklist?')) return;
+  D.checklists = D.checklists.filter(x => x.id !== id); saveData(); renderChecklists();
+}
+
+/* =====================================================
+   CONTRATOS
+===================================================== */
+function renderContratos() {
+  const el = document.getElementById('lista-contratos');
+  if (!D.contratos.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-file-text"></i><p>Nenhum contrato cadastrado</p><button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i> Cadastrar contrato</button></div>`;
+    return;
+  }
+  el.innerHTML = D.contratos.map(c => `<div class="card">
+    <div class="card-header">
+      <div>
+        <div style="font-size:13px; font-weight:600">${c.nome}</div>
+        <div style="font-size:10px; color:var(--text-secondary); margin-top:2px">${c.parte} · ${c.tipo}</div>
+      </div>
+      <div style="display:flex; gap:5px; align-items:center">
+        <span class="badge ${statusColor(c.status)}">${statusLabel(c.status)}</span>
+        <button class="btn btn-danger btn-xs" onclick="delContrato('${c.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    <div style="display:flex; gap:16px; font-size:11px; color:var(--text-secondary); flex-wrap:wrap">
+      <span><i class="ti ti-calendar"></i> Vence: <strong>${fmt(c.vencimento)}</strong></span>
+      <span><i class="ti ti-currency-dollar"></i> ${c.valor || '—'}</span>
+      ${c.notas ? `<span style="font-style:italic"><i class="ti ti-note"></i> ${c.notas}</span>` : ''}
+    </div>
+  </div>`).join('');
+}
+function delContrato(id) {
+  if (!confirm('Remover contrato?')) return;
+  D.contratos = D.contratos.filter(x => x.id !== id); saveData(); renderContratos();
+}
+
+/* =====================================================
+   ESTUDOS
+===================================================== */
+function renderEstudos() {
+  const el = document.getElementById('lista-estudos');
+  if (!D.estudos.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-book"></i><p>Nenhum estudo cadastrado</p><button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i> Criar estudo</button></div>`;
+    return;
+  }
+  el.innerHTML = D.estudos.map(e => `<div class="card">
+    <div class="card-header">
+      <div>
+        <div style="font-size:13px; font-weight:600">${e.titulo}</div>
+        <div style="font-size:10px; color:var(--text-secondary); margin-top:2px">${e.area}${e.prazo ? ' · Meta: ' + fmt(e.prazo) : ''}</div>
+      </div>
+      <div style="display:flex; gap:5px; align-items:center">
+        <span class="badge ${statusColor(e.status)}">${statusLabel(e.status)}</span>
+        <button class="btn btn-danger btn-xs" onclick="delEstudo('${e.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    ${e.notas ? `<div style="font-size:11px; color:var(--text-secondary); margin-bottom:8px">${e.notas}</div>` : ''}
+    <div style="display:flex; align-items:center; gap:10px">
+      <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${e.progresso}%"></div></div>
+      <span style="font-size:10px; color:var(--text-secondary); min-width:32px">${e.progresso}%</span>
+      <input type="range" min="0" max="100" step="5" value="${e.progresso}" style="width:80px; cursor:pointer; accent-color:var(--accent)"
+        oninput="updProg('${e.id}',this.value)">
+    </div>
+  </div>`).join('');
+}
+function updProg(id, v) {
+  const e = D.estudos.find(x => x.id === id);
+  if (e) { e.progresso = parseInt(v); e.status = v == 100 ? 'concluido' : v > 0 ? 'em_andamento' : 'pendente'; saveData(); renderEstudos(); }
+}
+function delEstudo(id) {
+  if (!confirm('Remover estudo?')) return;
+  D.estudos = D.estudos.filter(x => x.id !== id); saveData(); renderEstudos();
+}
+
+/* =====================================================
+   IA
+===================================================== */
+function buildContext() {
+  const hoje = new Date().toISOString().split('T')[0];
+  return `=== DADOS DO ESCRITÓRIO ===
+Advogado: ${D.config.nome || 'Não informado'} ${D.config.oab ? '| OAB: ' + D.config.oab : ''}
+Escritório: ${D.config.escritorio || 'Não informado'}
+Data atual: ${hoje}
+
+=== PROCESSOS (${D.processos.length} total) ===
+${D.processos.map(p => {
+  const et = p.etapas ? `${p.etapas.filter(e=>e.ok).length}/${p.etapas.length} etapas concluídas` : '';
+  return `[${p.status.toUpperCase()}] ${p.num}\nNome: ${p.nome}\nCliente: ${p.cliente} | Área: ${p.area} | Fase: ${p.fase} | Prazo: ${p.prazo || 'sem prazo'}\n${et}\n${p.notas ? 'Notas: ' + p.notas : ''}`;
+}).join('\n---\n')}
+
+=== AGENDA (próximos 30 dias) ===
+${D.agenda.filter(a => a.data >= hoje).sort((a,b) => a.data > b.data ? 1 : -1)
+  .map(a => `${a.data} ${a.hora} | [${a.tipo.toUpperCase()}] ${a.titulo} | Local: ${a.local || '—'} | Processo: ${a.processo || '—'}`).join('\n') || 'Nenhum'}
+
+=== CHECKLISTS ===
+${D.checklists.map(c => {
+  const done = c.itens.filter(i=>i.ok).length;
+  const pend = c.itens.filter(i=>!i.ok).map(i=>i.texto);
+  return `[${clLabel(c.tipo).toUpperCase()}] ${c.titulo} — ${done}/${c.itens.length} concluídos\nPendentes: ${pend.join('; ') || 'nenhum'}`;
+}).join('\n---\n')}
+
+=== CONTRATOS ===
+${D.contratos.map(c => `[${statusLabel(c.status).toUpperCase()}] ${c.nome} | ${c.parte} | Vence: ${c.vencimento || '—'} | Valor: ${c.valor || '—'}`).join('\n') || 'Nenhum'}
+
+=== ESTUDOS JURÍDICOS ===
+${D.estudos.map(e => `${e.titulo} (${e.area}) — ${e.progresso}% | Status: ${statusLabel(e.status)} | Meta: ${e.prazo || '—'}`).join('\n') || 'Nenhum'}`;
+}
+
+function runIA(prompt) {
+  const msgs = document.getElementById('ai-msgs');
+  aiHistory.push({ role: 'user', content: prompt });
+
+  const uEl = document.createElement('div');
+  uEl.className = 'ai-msg user';
+  uEl.textContent = prompt;
+  msgs.appendChild(uEl);
+
+  const tEl = document.createElement('div');
+  tEl.className = 'ai-msg assistant thinking';
+  tEl.innerHTML = '<i class="ti ti-loader"></i> Analisando seus dados...';
+  msgs.appendChild(tEl);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const ctx = buildContext();
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: `Você é um assistente jurídico especializado integrado ao LexDesk, sistema de gestão de um escritório de advocacia. Sua função é analisar os dados fornecidos e oferecer orientações estratégicas práticas, objetivas e acionáveis. Responda sempre em português brasileiro. Use formatação clara com marcadores quando listar itens. Seja direto e prático. Priorize sempre as situações mais críticas e urgentes. Aqui estão os dados atuais do escritório:\n\n${ctx}`,
+      messages: aiHistory.slice(-10)
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    const text = data.content && data.content[0] ? data.content[0].text : 'Não foi possível obter resposta.';
+    aiHistory.push({ role: 'assistant', content: text });
+    tEl.remove();
+    const aEl = document.createElement('div');
+    aEl.className = 'ai-msg assistant';
+    aEl.innerHTML = text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    msgs.appendChild(aEl);
+    msgs.scrollTop = msgs.scrollHeight;
+  })
+  .catch(() => {
+    tEl.remove();
+    const eEl = document.createElement('div');
+    eEl.className = 'ai-msg assistant';
+    eEl.innerHTML = '⚠️ Não foi possível conectar à IA. Verifique sua conexão e tente novamente.';
+    msgs.appendChild(eEl);
+  });
+}
+
+function sendAI() {
+  const inp = document.getElementById('ai-input');
+  if (!inp || !inp.value.trim()) return;
+  const q = inp.value.trim(); inp.value = '';
+  runIA(q);
+}
+
+function clearAI() {
+  aiHistory = [];
+  document.getElementById('ai-msgs').innerHTML = `<div class="ai-msg assistant">Conversa reiniciada. Como posso ajudar?</div>`;
+}
+
+/* =====================================================
+   CAMPOS PERSONALIZÁVEIS
+===================================================== */
+function renderCampos() {
+  const cl = document.getElementById('lista-campos');
+  cl.innerHTML = D.campos.length
+    ? D.campos.map(c => `<div class="custom-field">
+        <span class="custom-field-label" style="font-weight:600">${c.nome}</span>
+        <span class="badge badge-gray">${c.tipo}</span>
+        <span class="badge badge-blue">${c.entidade}</span>
+        ${c.opcoes ? `<span style="font-size:10px; color:var(--text-secondary); flex:1; margin-left:4px">${c.opcoes}</span>` : '<span style="flex:1"></span>'}
+        <button class="btn btn-danger btn-xs" onclick="delCampo('${c.id}')"><i class="ti ti-trash"></i></button>
+      </div>`).join('')
+    : '<div style="font-size:12px; color:var(--text-secondary); padding:8px 0">Nenhum campo criado.</div>';
+
+  const ml = document.getElementById('lista-modelos');
+  ml.innerHTML = D.modelos.map(m => `<div class="card" style="margin-bottom:8px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+      <span style="font-size:13px; font-weight:600">${m.nome}</span>
+      <div style="display:flex; gap:5px">
+        <button class="btn btn-primary btn-sm" onclick="usarModelo('${m.id}')"><i class="ti ti-copy"></i> Usar</button>
+        <button class="btn btn-danger btn-xs" onclick="delModelo('${m.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:4px">
+      ${m.etapas.map((e,i) => `<span class="badge badge-gray">${i+1}. ${e}</span>`).join('')}
+    </div>
+  </div>`).join('');
+}
+
+function openCampoModal() {
+  document.getElementById('modal-title').textContent = 'Novo campo personalizado';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Nome do campo</label>
+      <input type="text" id="f-nome" placeholder="Ex: Valor da causa, Vara, Juiz responsável..."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select id="f-tipo" onchange="document.getElementById('opc-grp').style.display=this.value==='selecao'?'block':'none'">
+          <option value="texto">Texto</option>
+          <option value="numero">Número</option>
+          <option value="data">Data</option>
+          <option value="selecao">Seleção</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Aparece em</label>
+        <select id="f-ent">
+          <option value="processo">Processos</option>
+          <option value="contrato">Contratos</option>
+          <option value="agenda">Agenda</option>
+        </select></div>
+    </div>
+    <div class="form-group" id="opc-grp" style="display:none">
+      <label class="form-label">Opções (separadas por vírgula)</label>
+      <input type="text" id="f-opcoes" placeholder="Opção A, Opção B, Opção C">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveCampo()"><i class="ti ti-check"></i> Criar campo</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-main').classList.add('open');
+}
+function saveCampo() {
+  const nome = document.getElementById('f-nome').value.trim();
+  if (!nome) { alert('Informe o nome do campo.'); return; }
+  D.campos.push({ id: gid(), nome, tipo: document.getElementById('f-tipo').value, entidade: document.getElementById('f-ent').value, opcoes: document.getElementById('f-opcoes') ? document.getElementById('f-opcoes').value : '' });
+  saveData(); closeModal(); renderCampos();
+}
+function delCampo(id) {
+  if (!confirm('Remover campo?')) return;
+  D.campos = D.campos.filter(x => x.id !== id); saveData(); renderCampos();
+}
+
+function openModeloModal() {
+  document.getElementById('modal-title').textContent = 'Novo modelo de etapas';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Nome do modelo</label>
+      <input type="text" id="f-nome" placeholder="Ex: Ação de Divórcio Litigioso"></div>
+    <div class="form-group"><label class="form-label">Etapas (uma por linha)</label>
+      <textarea id="f-etapas" style="min-height:140px" placeholder="Petição inicial&#10;Citação&#10;Contestação&#10;Audiência&#10;Sentença"></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveModelo()"><i class="ti ti-check"></i> Salvar modelo</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-main').classList.add('open');
+}
+function saveModelo() {
+  const nome = document.getElementById('f-nome').value.trim();
+  if (!nome) { alert('Informe o nome.'); return; }
+  const etapas = document.getElementById('f-etapas').value.split('\n').map(x => x.trim()).filter(Boolean);
+  D.modelos.push({ id: gid(), nome, etapas }); saveData(); closeModal(); renderCampos();
+}
+function delModelo(id) {
+  if (!confirm('Remover modelo?')) return;
+  D.modelos = D.modelos.filter(x => x.id !== id); saveData(); renderCampos();
+}
+function usarModelo(id) {
+  const m = D.modelos.find(x => x.id === id);
+  if (!m) return;
+  showSection('processos', document.querySelectorAll('.nav-item')[1]);
+  setTimeout(() => {
+    openAddModal();
+    setTimeout(() => {
+      formEtapas = m.etapas.map(e => ({ nome: e, ok: false }));
+      renderEtapasForm();
+      const sel = document.getElementById('f-modelo');
+      // highlight model
+      const opt = [...sel.options].find(o => o.value === id);
+      if (opt) sel.value = id;
+    }, 100);
+  }, 100);
+}
+
+/* =====================================================
+   EXPORTAR PDF
+===================================================== */
+function openExportModal() {
+  document.getElementById('modal-export').classList.add('open');
+}
+
+function gerarPDF() {
+  const titulo = document.getElementById('exp-titulo').value || 'Relatório Jurídico — LexDesk';
+  const hoje = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+  const adv = D.config.nome || 'Advogado';
+  const oab = D.config.oab || '';
+  const esc = D.config.escritorio || '';
+  const email = D.config.email || '';
+
+  let body = '';
+
+  if (document.getElementById('exp-processos').checked) {
+    body += `<h2>⚖️ Processos Judiciais</h2>`;
+    D.processos.forEach(p => {
+      const pr = p.etapas ? Math.round(p.etapas.filter(e=>e.ok).length/p.etapas.length*100) : 0;
+      body += `<div class="item">
+        <div class="item-title">${p.nome} <span class="b ${p.status==='urgente'?'b-red':p.status==='arquivado'?'b-gray':'b-blue'}">${statusLabel(p.status)}</span></div>
+        <div class="item-meta">${p.num} · ${p.area} · Fase: ${p.fase} · Cliente: ${p.cliente}${p.prazo?' · Prazo: '+fmt(p.prazo):''}</div>
+        ${p.etapas&&p.etapas.length?`<div class="etapas">${p.etapas.map(e=>`<span class="etapa">${e.ok?'✓':'○'} ${e.nome}</span>`).join('')}</div><div class="prog"><div class="prog-f" style="width:${pr}%"></div></div>`:''}
+        ${p.notas?`<div class="item-note">${p.notas}</div>`:''}
+      </div>`;
+    });
+  }
+
+  if (document.getElementById('exp-agenda').checked) {
+    body += `<h2>📅 Agenda e Compromissos</h2>`;
+    [...D.agenda].sort((a,b)=>a.data>b.data?1:-1).forEach(a => {
+      body += `<div class="item">
+        <div class="item-title">${a.titulo} <span class="b ${tipoColor(a.tipo).replace('badge-','b-')}">${tipoLabel(a.tipo)}</span></div>
+        <div class="item-meta">${fmt(a.data)} às ${a.hora}${a.local?' · '+a.local:''}${a.notas?' · <em>'+a.notas+'</em>':''}</div>
+      </div>`;
+    });
+  }
+
+  if (document.getElementById('exp-checklists').checked) {
+    body += `<h2>✅ Checklists</h2>`;
+    D.checklists.forEach(c => {
+      const done = c.itens.filter(i=>i.ok).length;
+      const pct = c.itens.length ? Math.round(done/c.itens.length*100) : 0;
+      body += `<div class="item">
+        <div class="item-title">${c.titulo} <span class="b ${clColor(c.tipo).replace('badge-','b-')}">${clLabel(c.tipo)}</span> <span style="font-size:10px; font-weight:normal; color:#555">${done}/${c.itens.length} · ${pct}%</span></div>
+        <div class="prog"><div class="prog-f" style="width:${pct}%"></div></div>
+        <ul style="margin:6px 0 0 16px; font-size:11px">
+          ${c.itens.map(i=>`<li style="${i.ok?'text-decoration:line-through;color:#888':''}">
+            ${i.ok?'☑':'☐'} ${i.texto}</li>`).join('')}
+        </ul>
+      </div>`;
+    });
+  }
+
+  if (document.getElementById('exp-contratos').checked) {
+    body += `<h2>📄 Contratos</h2>`;
+    D.contratos.forEach(c => {
+      body += `<div class="item">
+        <div class="item-title">${c.nome} <span class="b ${statusColor(c.status).replace('badge-','b-')}">${statusLabel(c.status)}</span></div>
+        <div class="item-meta">${c.parte} · ${c.tipo} · Vence: ${fmt(c.vencimento)} · ${c.valor||'—'}${c.notas?' · <em>'+c.notas+'</em>':''}</div>
+      </div>`;
+    });
+  }
+
+  if (document.getElementById('exp-estudos').checked) {
+    body += `<h2>📚 Estudos Jurídicos</h2>`;
+    D.estudos.forEach(e => {
+      body += `<div class="item">
+        <div class="item-title">${e.titulo} <span class="b ${statusColor(e.status).replace('badge-','b-')}">${statusLabel(e.status)}</span></div>
+        <div class="item-meta">${e.area}${e.prazo?' · Meta: '+fmt(e.prazo):''} · ${e.progresso}% concluído</div>
+        <div class="prog"><div class="prog-f" style="width:${e.progresso}%"></div></div>
+        ${e.notas?`<div class="item-note">${e.notas}</div>`:''}
+      </div>`;
+    });
+  }
+
+  if (document.getElementById('exp-campos').checked && D.campos.length) {
+    body += `<h2>⚙️ Campos Personalizados</h2>`;
+    D.campos.forEach(c => {
+      body += `<div class="item"><div class="item-title">${c.nome}</div>
+        <div class="item-meta">Tipo: ${c.tipo} · Entidade: ${c.entidade}${c.opcoes?' · Opções: '+c.opcoes:''}</div></div>`;
+    });
+  }
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>${titulo}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1a1916;line-height:1.5;background:#fff}
+    .hd{padding:20px 30px 16px;border-bottom:3px solid #185FA5;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hd-logo{font-size:20px;font-weight:700;color:#185FA5;letter-spacing:-.3px}
+    .hd-sub{font-size:11px;color:#555;margin-top:2px}
+    .hd-right{text-align:right;font-size:10px;color:#555;line-height:1.8}
+    .body{padding:0 30px 30px}
+    h2{font-size:13px;font-weight:700;color:#185FA5;border-bottom:1px solid #ddd;padding-bottom:5px;margin:18px 0 10px}
+    .item{border:1px solid #e0e0e0;border-radius:5px;padding:10px 12px;margin-bottom:8px;break-inside:avoid}
+    .item-title{font-size:12px;font-weight:700;margin-bottom:3px}
+    .item-meta{font-size:10px;color:#666;margin-bottom:3px}
+    .item-note{font-size:10px;color:#888;font-style:italic;margin-top:4px}
+    .b{display:inline-block;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;margin-left:4px}
+    .b-blue{background:#e6f1fb;color:#0c447c} .b-red{background:#fcebeb;color:#791f1f}
+    .b-green{background:#eaf3de;color:#27500a} .b-gray{background:#f1efe8;color:#444}
+    .b-amber{background:#faeeda;color:#633806} .b-purple{background:#eeedfe;color:#3c3489}
+    .prog{height:4px;background:#eee;border-radius:2px;overflow:hidden;margin:5px 0}
+    .prog-f{height:100%;background:#185FA5;border-radius:2px}
+    .etapas{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+    .etapa{font-size:9px;padding:1px 6px;background:#f5f5f5;border-radius:3px;border:1px solid #e0e0e0}
+    .ft{margin-top:30px;padding-top:10px;border-top:1px solid #ddd;text-align:center;font-size:9px;color:#aaa}
+    @media print{body{margin:0}@page{margin:1.5cm;size:A4}}
+  </style></head><body>
+  <div class="hd">
+    <div>
+      <div class="hd-logo">⚖ LexDesk</div>
+      <div class="hd-sub">${titulo}</div>
+    </div>
+    <div class="hd-right">
+      <strong>${adv}</strong>${oab?' · '+oab:''}<br>
+      ${esc}<br>
+      ${email}<br>
+      Gerado em ${hoje}
+    </div>
+  </div>
+  <div class="body">${body}</div>
+  <div class="ft">Relatório gerado automaticamente pelo LexDesk · ${hoje}</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 800);
+  document.getElementById('modal-export').classList.remove('open');
+}
+
+/* =====================================================
+   MODAL ADD
+===================================================== */
+function openAddModal() {
+  const s = CS;
+  const map = {
+    processos: ['Novo processo', modalProcesso],
+    agenda: ['Novo compromisso', modalAgenda],
+    checklists: ['Novo checklist', modalChecklist],
+    contratos: ['Novo contrato', modalContrato],
+    estudos: ['Novo estudo', modalEstudo],
+    dashboard: ['Novo processo', modalProcesso],
+    ia: ['Novo processo', modalProcesso]
+  };
+  const [title, fn] = map[s] || ['Adicionar', () => '<p style="font-size:12px;color:var(--text-secondary)">Selecione uma seção primeiro.</p>'];
+  document.getElementById('modal-title').textContent = title;
+  formEtapas = [];
+  document.getElementById('modal-body').innerHTML = fn();
+  document.getElementById('modal-main').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-main').classList.remove('open'); }
+
+/* ----- MODAL: PROCESSO ----- */
+function modalProcesso() {
+  return `
+    <div class="form-group"><label class="form-label">Número do processo</label>
+      <input type="text" id="f-num" placeholder="0000000-00.0000.8.00.0000"></div>
+    <div class="form-group"><label class="form-label">Nome / Descrição *</label>
+      <input type="text" id="f-nome" placeholder="Ex: Ação de cobrança — Empresa X"></div>
+    <div class="form-group"><label class="form-label">Cliente *</label>
+      <input type="text" id="f-cli" placeholder="Nome do cliente"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Área</label>
+        <select id="f-area">
+          <option>Cível</option><option>Trabalhista</option><option>Família</option>
+          <option>Imobiliário</option><option>Empresarial</option><option>Criminal</option>
+          <option>Tributário</option><option>Previdenciário</option><option>Administrativo</option><option>Outro</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="f-status">
+          <option value="normal">Ativo</option>
+          <option value="urgente">Urgente</option>
+          <option value="arquivado">Arquivado</option>
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fase atual</label>
+        <input type="text" id="f-fase" placeholder="Ex: Contestação"></div>
+      <div class="form-group"><label class="form-label">Prazo</label>
+        <input type="date" id="f-prazo"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Modelo de etapas</label>
+      <select id="f-modelo" onchange="aplicarModelo(this.value)">
+        <option value="">— Sem modelo (etapas manuais) —</option>
+        ${D.modelos.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+      </select></div>
+    <div class="form-group">
+      <label class="form-label">Etapas processuais</label>
+      <div id="f-etapas-list"></div>
+      <div class="inline-add">
+        <input type="text" id="f-et-inp" placeholder="Nome da etapa (Enter para adicionar)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addEF();}">
+        <button class="btn btn-sm" onclick="addEF()"><i class="ti ti-plus"></i></button>
+      </div>
+    </div>
+    ${D.campos.filter(c=>c.entidade==='processo').length ? `
+    <div class="form-section">
+      <div class="form-section-title">Campos adicionais</div>
+      ${D.campos.filter(c=>c.entidade==='processo').map(c=>`
+        <div class="form-group"><label class="form-label">${c.nome}</label>
+          ${c.tipo==='selecao'
+            ?`<select id="fce-${c.id}"><option value=""></option>${c.opcoes.split(',').map(o=>`<option>${o.trim()}</option>`).join('')}</select>`
+            :`<input type="${c.tipo==='data'?'date':c.tipo==='numero'?'number':'text'}" id="fce-${c.id}" placeholder="—">`}
+        </div>`).join('')}
+    </div>` : ''}
+    <div class="form-group"><label class="form-label">Notas / Observações</label>
+      <textarea id="f-notas" placeholder="Informações relevantes sobre o processo..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveProcesso()"><i class="ti ti-check"></i> Salvar processo</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+
+function aplicarModelo(id) {
+  if (!id) return;
+  const m = D.modelos.find(x => x.id === id);
+  if (m) { formEtapas = m.etapas.map(e => ({ nome: e, ok: false })); renderEtapasForm(); }
+}
+function addEF() {
+  const i = document.getElementById('f-et-inp');
+  if (!i || !i.value.trim()) return;
+  formEtapas.push({ nome: i.value.trim(), ok: false }); i.value = ''; renderEtapasForm();
+}
+function renderEtapasForm() {
+  const el = document.getElementById('f-etapas-list');
+  if (!el) return;
+  el.innerHTML = formEtapas.map((e, i) => `
+    <div style="display:flex; align-items:center; gap:7px; padding:5px 0; border-bottom:1px solid var(--border-light)">
+      <i class="ti ti-grip-vertical" style="color:var(--text-secondary); font-size:12px"></i>
+      <span style="flex:1; font-size:12px">${e.nome}</span>
+      <button class="item-del-btn" onclick="formEtapas.splice(${i},1); renderEtapasForm()">
+        <i class="ti ti-x" style="font-size:11px"></i>
+      </button>
+    </div>`).join('');
+}
+function saveProcesso() {
+  const nome = document.getElementById('f-nome').value.trim();
+  const cli  = document.getElementById('f-cli').value.trim();
+  if (!nome) { alert('Informe o nome do processo.'); return; }
+  if (!cli)  { alert('Informe o cliente.'); return; }
+  const camposExtra = {};
+  D.campos.filter(c => c.entidade === 'processo').forEach(c => {
+    const el = document.getElementById('fce-' + c.id);
+    if (el) camposExtra[c.id] = el.value;
+  });
+  D.processos.push({
+    id: gid(),
+    num:    document.getElementById('f-num').value,
+    nome,
+    cliente: cli,
+    area:   document.getElementById('f-area').value,
+    status: document.getElementById('f-status').value,
+    fase:   document.getElementById('f-fase').value,
+    prazo:  document.getElementById('f-prazo').value,
+    notas:  document.getElementById('f-notas').value,
+    etapas: [...formEtapas],
+    camposExtra
+  });
+  formEtapas = [];
+  saveData(); closeModal(); renderProcessos(); renderDashboard();
+}
+
+/* ----- MODAL: AGENDA ----- */
+function modalAgenda() {
+  const d = selDate || new Date().toISOString().split('T')[0];
+  return `
+    <div class="form-group"><label class="form-label">Título *</label>
+      <input type="text" id="f-titulo" placeholder="Ex: Audiência — Processo X"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Data *</label>
+        <input type="date" id="f-data" value="${d}"></div>
+      <div class="form-group"><label class="form-label">Hora</label>
+        <input type="time" id="f-hora" value="09:00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select id="f-tipo">
+          <option value="audiencia">Audiência</option>
+          <option value="prazo">Prazo</option>
+          <option value="reuniao">Reunião</option>
+          <option value="despacho">Despacho</option>
+          <option value="outro">Outro</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Local</label>
+        <input type="text" id="f-local" placeholder="Vara, escritório, online..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">Processo vinculado</label>
+      <input type="text" id="f-proc" placeholder="Número do processo (opcional)" list="proc-list">
+      <datalist id="proc-list">
+        ${D.processos.map(p => `<option value="${p.num}">${p.nome}</option>`).join('')}
+      </datalist></div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea id="f-notas" placeholder="Observações..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveAgenda()"><i class="ti ti-check"></i> Salvar compromisso</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+function saveAgenda() {
+  const t = document.getElementById('f-titulo').value.trim();
+  const d = document.getElementById('f-data').value;
+  if (!t || !d) { alert('Informe título e data.'); return; }
+  D.agenda.push({
+    id: gid(), titulo: t, data: d,
+    hora: document.getElementById('f-hora').value,
+    tipo: document.getElementById('f-tipo').value,
+    local: document.getElementById('f-local').value,
+    processo: document.getElementById('f-proc').value,
+    notas: document.getElementById('f-notas').value
+  });
+  saveData(); closeModal(); renderCalendar(); renderAgendaDay(d); renderDashboard();
+}
+
+/* ----- MODAL: CHECKLIST ----- */
+function modalChecklist() {
+  return `
+    <div class="form-group"><label class="form-label">Título *</label>
+      <input type="text" id="f-titulo" placeholder="Ex: Análise de contrato — Empresa X"></div>
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select id="f-tipo">
+        <option value="legislacao">Legislação</option>
+        <option value="contrato">Contrato</option>
+        <option value="processo">Processo</option>
+        <option value="outros">Outros</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Itens (um por linha)</label>
+      <textarea id="f-itens" style="min-height:120px"
+        placeholder="Verificar qualificação das partes&#10;Analisar cláusulas de multa&#10;Checar prazo de vigência&#10;Verificar foro de eleição"></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveCL2()"><i class="ti ti-check"></i> Criar checklist</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+function saveCL2() {
+  const t = document.getElementById('f-titulo').value.trim();
+  if (!t) { alert('Informe o título.'); return; }
+  const itens = document.getElementById('f-itens').value.split('\n')
+    .map(x => x.trim()).filter(Boolean)
+    .map(x => ({ id: gid(), texto: x, ok: false }));
+  D.checklists.push({ id: gid(), titulo: t, tipo: document.getElementById('f-tipo').value, itens });
+  saveData(); closeModal(); renderChecklists(); renderDashboard();
+}
+
+/* ----- MODAL: CONTRATO ----- */
+function modalContrato() {
+  return `
+    <div class="form-group"><label class="form-label">Nome do contrato *</label>
+      <input type="text" id="f-nome" placeholder="Ex: Contrato de Locação — Edifício X"></div>
+    <div class="form-group"><label class="form-label">Contraparte *</label>
+      <input type="text" id="f-parte" placeholder="Nome da empresa ou pessoa física"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select id="f-tipo">
+          <option>Prestação de Serviços</option><option>Locação</option>
+          <option>Compra e Venda</option><option>Parceria</option>
+          <option>Trabalho</option><option>Honorários</option><option>Outro</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="f-status">
+          <option value="ok">Regular</option>
+          <option value="revisar">Revisar</option>
+        </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Vencimento</label>
+        <input type="date" id="f-venc"></div>
+      <div class="form-group"><label class="form-label">Valor</label>
+        <input type="text" id="f-valor" placeholder="R$ 0,00"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label>
+      <textarea id="f-notas" placeholder="Cláusulas relevantes, pendências, observações..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveContrato2()"><i class="ti ti-check"></i> Salvar contrato</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+function saveContrato2() {
+  const nome  = document.getElementById('f-nome').value.trim();
+  const parte = document.getElementById('f-parte').value.trim();
+  if (!nome)  { alert('Informe o nome do contrato.'); return; }
+  if (!parte) { alert('Informe a contraparte.'); return; }
+  D.contratos.push({
+    id: gid(), nome, parte,
+    tipo:       document.getElementById('f-tipo').value,
+    status:     document.getElementById('f-status').value,
+    vencimento: document.getElementById('f-venc').value,
+    valor:      document.getElementById('f-valor').value,
+    notas:      document.getElementById('f-notas').value
+  });
+  saveData(); closeModal(); renderContratos();
+}
+
+/* ----- MODAL: ESTUDO ----- */
+function modalEstudo() {
+  return `
+    <div class="form-group"><label class="form-label">Título *</label>
+      <input type="text" id="f-titulo" placeholder="Ex: CLT — Reforma Trabalhista 2024"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Área jurídica</label>
+        <select id="f-area">
+          <option>Cível</option><option>Trabalhista</option><option>Empresarial</option>
+          <option>Tributário</option><option>Constitucional</option>
+          <option>Previdenciário</option><option>Criminal</option><option>Outro</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Meta de conclusão</label>
+        <input type="date" id="f-prazo"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas / Fontes</label>
+      <textarea id="f-notas" placeholder="Fontes, tópicos a estudar, observações..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveEstudo2()"><i class="ti ti-check"></i> Salvar estudo</button>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+    </div>`;
+}
+function saveEstudo2() {
+  const t = document.getElementById('f-titulo').value.trim();
+  if (!t) { alert('Informe o título.'); return; }
+  D.estudos.push({
+    id: gid(), titulo: t,
+    area:     document.getElementById('f-area').value,
+    prazo:    document.getElementById('f-prazo').value,
+    notas:    document.getElementById('f-notas').value,
+    status:   'pendente',
+    progresso: 0
+  });
+  saveData(); closeModal(); renderEstudos();
+}
+
+/* =====================================================
+   CONFIG
+===================================================== */
+function saveConfig() {
+  D.config = {
+    nome:      document.getElementById('conf-nome').value,
+    oab:       document.getElementById('conf-oab').value,
+    escritorio: document.getElementById('conf-escritorio').value,
+    email:     document.getElementById('conf-email').value,
+    tel:       document.getElementById('conf-tel').value
+  };
+  saveData();
+  alert('Configurações salvas com sucesso!');
+}
+
+/* =====================================================
+   BACKUP
+===================================================== */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(D, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lexdesk-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+function importJSON() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        D = JSON.parse(ev.target.result);
+        saveDataNow();
+        location.reload();
+      }
+      catch(ex) { alert('Arquivo inválido ou corrompido.'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function clearAll() {
+  if (!confirm('⚠️ Isso apagará TODOS os dados permanentemente da nuvem. Tem certeza?')) return;
+  if (!confirm('Confirme novamente: todos os processos, agenda e dados serão removidos.')) return;
+  D = { processos: [], agenda: [], checklists: [], contratos: [], estudos: [], campos: [], modelos: [], config: D.config || {} };
+  saveDataNow();
+  location.reload();
+}
+
+/* =====================================================
+   APP STARTS VIA onAuthStateChanged listener above —
+   no manual init() call needed.
+===================================================== */
+</script>
+</body>
+</html>
